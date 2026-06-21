@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from langchain_core.runnables.config import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
 
 from src.agent_graph.graph import build_graph
@@ -16,10 +17,14 @@ def get_graph() -> CompiledStateGraph:
     return _graph
 
 
+def _make_config(thread_id: str) -> RunnableConfig:
+    return {"configurable": {"thread_id": thread_id}}
+
+
 @router.post("/tasks", response_model=TaskResponse)
 async def create_task(req: TaskRequest):
     graph = get_graph()
-    config = {"configurable": {"thread_id": req.thread_id}}
+    config = _make_config(req.thread_id)
 
     initial_state: CodeGenState = {
         "messages": [],
@@ -48,7 +53,7 @@ async def create_task(req: TaskRequest):
 @router.get("/tasks/{thread_id}", response_model=TaskResponse)
 async def get_task(thread_id: str):
     graph = get_graph()
-    config = {"configurable": {"thread_id": thread_id}}
+    config = _make_config(thread_id)
     state = graph.get_state(config)
     if state is None:
         raise HTTPException(status_code=404, detail="Task not found")

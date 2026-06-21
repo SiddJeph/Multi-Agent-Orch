@@ -3,7 +3,6 @@ import json
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from src.llm.client import get_llm
-from src.tools import read_file
 
 
 def reviewer_node(state: dict) -> dict:
@@ -32,15 +31,16 @@ Output a JSON object with keys: approved (bool), issues (list of dicts with seve
     ]
     response = llm.invoke(messages)
 
+    content = response.content if isinstance(response.content, str) else str(response.content)
     try:
-        review = json.loads(response.content.replace("```json", "").replace("```", "").strip())
+        json.loads(content.replace("```json", "").replace("```", "").strip())
     except json.JSONDecodeError:
-        review = {"approved": False, "issues": [], "summary": response.content}
+        pass
 
-    feedback = state.get("review_feedback", []) + [response.content]
+    feedback = state.get("review_feedback", []) + [content]
 
     return {
-        "messages": [AIMessage(content=response.content)],
+        "messages": [AIMessage(content=content)],
         "review_feedback": feedback,
         "status": "reviewed",
     }

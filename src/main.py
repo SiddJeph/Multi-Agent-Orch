@@ -32,22 +32,22 @@ def cli():
     if len(sys.argv) > 1 and sys.argv[1] == "run-task":
         requirements = sys.argv[2] if len(sys.argv) > 2 else "Create a simple calculator in Python"
         graph = build_graph()
+        from src.agent_graph.state import CodeGenState
+
+        initial_state: CodeGenState = {
+            "messages": [HumanMessage(content=requirements)],
+            "requirements": requirements,
+            "architecture": "",
+            "code": {},
+            "review_feedback": [],
+            "test_results": {},
+            "documentation": "",
+            "iteration_count": 0,
+            "errors": [],
+            "status": "started",
+        }
         config = {"configurable": {"thread_id": "cli-task"}}
-        result = graph.invoke(
-            {
-                "messages": [HumanMessage(content=requirements)],
-                "requirements": requirements,
-                "architecture": "",
-                "code": {},
-                "review_feedback": [],
-                "test_results": {},
-                "documentation": "",
-                "iteration_count": 0,
-                "errors": [],
-                "status": "started",
-            },
-            config,
-        )
+        result = graph.invoke(initial_state, config)
         print(f"Status: {result['status']}")
         print(f"Architecture: {result['architecture'][:200]}...")
         print(f"Files created: {list(result['code'].keys())}")

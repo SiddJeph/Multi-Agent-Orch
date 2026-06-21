@@ -1,9 +1,7 @@
 import json
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from langchain_core.tools import tool
 
-from src.config import settings
 from src.llm.client import get_llm
 
 
@@ -27,10 +25,11 @@ Output as a JSON object with keys: project_structure, components, data_flow, tec
     messages = [SystemMessage(content=prompt), HumanMessage(content=state["requirements"])]
     response = llm.invoke(messages)
 
+    content = response.content if isinstance(response.content, str) else str(response.content)
     try:
-        parsed = json.loads(response.content.replace("```json", "").replace("```", "").strip())
+        parsed = json.loads(content.replace("```json", "").replace("```", "").strip())
     except json.JSONDecodeError:
-        parsed = {"raw": response.content}
+        parsed = {"raw": content}
 
     return {
         "messages": [AIMessage(content=response.content)],
