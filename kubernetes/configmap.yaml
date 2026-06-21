@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: maco-config
+  labels:
+    app: maco
+data:
+  database_url: "postgresql+psycopg://user:pass@maco-db:5432/maco"
+  log_level: "INFO"
+  max_iterations: "3"
+  llm_model: "gemini-2.0-flash"

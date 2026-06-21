@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maco-api
+  labels:
+    app: maco
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: maco
+      component: api
+  template:
+    metadata:
+      labels:
+        app: maco
+        component: api
+    spec:
+      containers:
+      - name: api
+        image: maco-api:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: GOOGLE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: maco-secrets
+              key: google_api_key
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: maco-config
+              key: database_url
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: maco-config
+              key: log_level
+        - name: MAX_ITERATIONS
+          valueFrom:
+            configMapKeyRef:
+              name: maco-config
+              key: max_iterations
+        - name: LLM_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: maco-config
+              key: llm_model
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: maco-api
+  labels:
+    app: maco
+spec:
+  selector:
+    app: maco
+    component: api
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: maco-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: maco-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
